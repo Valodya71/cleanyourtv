@@ -22,16 +22,22 @@
             || url.indexOf('movie/now_playing') >= 0;
     }
 
-    function publish(rows) {
-        if (!Array.isArray(rows) || typeof AndroidJS === 'undefined'
+    function publish(response) {
+        if (typeof AndroidJS === 'undefined'
                 || typeof AndroidJS.publishPluginChannel !== 'function') return;
 
+        // TMDB's Api.main feeds its callback one completed shelf at a time.
+        // Accept arrays too, for compatible Lampa builds that aggregate them.
         var shelf = null;
-        for (var i = 0; i < rows.length; i++) {
-            if (isNowPlaying(rows[i])) {
-                shelf = rows[i];
-                break;
+        if (Array.isArray(response)) {
+            for (var i = 0; i < response.length; i++) {
+                if (isNowPlaying(response[i])) {
+                    shelf = response[i];
+                    break;
+                }
             }
+        } else if (isNowPlaying(response)) {
+            shelf = response;
         }
         if (!shelf || !Array.isArray(shelf.results)) return;
 
