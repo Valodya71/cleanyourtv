@@ -7,7 +7,7 @@
     'use strict';
 
     var CHANNEL_PREFIX = 'cleanyourtv.lampa.';
-    var installedFlag = '__cleanyourtv_now_playing_channel__';
+    var installedFlag = '__cleanyourtv_lampa_home_shelves_v2__';
 
     if (window[installedFlag]) return;
     window[installedFlag] = true;
