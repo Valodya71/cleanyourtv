@@ -27,9 +27,7 @@
         if (typeof AndroidJS === 'undefined'
                 || typeof AndroidJS.publishPluginChannel !== 'function') return;
 
-        // Lampa.Api.main can report each completed home shelf as an object, or
-        // aggregate shelves into an array on compatible builds. Publish every
-        // populated shelf so the launcher can offer each one in its chooser.
+        // The TMDB source reports its completed home shelves as an array.
         var shelves = Array.isArray(response) ? response : [response];
         for (var i = 0; i < shelves.length; i++) publishShelf(shelves[i], i);
     }
