@@ -7,10 +7,16 @@
     'use strict';
 
     var CHANNEL_PREFIX = 'cleanyourtv.lampa.';
-    var installedFlag = '__cleanyourtv_lampa_home_shelves_v3__';
+    var installedFlag = '__cleanyourtv_lampa_home_shelves_v4__';
 
     if (window[installedFlag]) return;
     window[installedFlag] = true;
+
+    function notify(message) {
+        if (window.Lampa && Lampa.Noty && typeof Lampa.Noty.show === 'function') {
+            Lampa.Noty.show('CleanYourTV: ' + message);
+        }
+    }
 
     function channelId(row, index) {
         var identity = String(row.url || row.title || 'row-' + index).toLowerCase();
@@ -25,15 +31,29 @@
 
     function publish(response) {
         if (typeof AndroidJS === 'undefined'
-                || typeof AndroidJS.publishPluginChannel !== 'function') return;
+                || typeof AndroidJS.publishPluginChannel !== 'function') {
+            notify('Android-мост предпросмотра недоступен');
+            return;
+        }
 
         // The TMDB source reports its completed home shelves as an array.
         var shelves = Array.isArray(response) ? response : [response];
-        for (var i = 0; i < shelves.length; i++) publishShelf(shelves[i], i);
+        var accepted = 0;
+        var cards = 0;
+        for (var i = 0; i < shelves.length; i++) {
+            var result = publishShelf(shelves[i], i);
+            if (result > 0) {
+                accepted++;
+                cards += result;
+            }
+        }
+        notify(accepted
+            ? 'принято полок: ' + accepted + ', карточек: ' + cards
+            : 'TMDB вернул полки без карточек');
     }
 
     function publishShelf(shelf, index) {
-        if (!shelf || !Array.isArray(shelf.results)) return;
+        if (!shelf || !Array.isArray(shelf.results)) return 0;
 
         var items = [];
         for (var j = 0; j < shelf.results.length && items.length < 12; j++) {
@@ -62,24 +82,29 @@
         }
 
         // Preserve the last good shelf on an empty result or a server/API error.
-        if (!items.length) return;
+        if (!items.length) return 0;
 
         var title = String(shelf.title || shelf.url || 'Подборка Lampa').trim();
-        AndroidJS.publishPluginChannel(JSON.stringify({
+        var accepted = AndroidJS.publishPluginChannel(JSON.stringify({
             id: channelId(shelf, index),
             title: title,
             items: items
         }));
+        return accepted === false ? 0 : items.length;
     }
 
     function loadShelf() {
         var tmdb = window.Lampa && Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb;
-        if (!tmdb || typeof tmdb.main !== 'function') return;
+        if (!tmdb || typeof tmdb.main !== 'function') {
+            notify('не найдена главная TMDB-лента Lampa');
+            return;
+        }
         try {
             // TMDB's main source returns a batch of home shelves in its callback.
-            tmdb.main({}, publish, function () {});
+            tmdb.main({}, publish, function () { notify('ошибка загрузки TMDB'); });
         } catch (ignored) {
             // A transient source error must not clear the last channel written to Android TV.
+            notify('ошибка запуска TMDB');
         }
     }
 
