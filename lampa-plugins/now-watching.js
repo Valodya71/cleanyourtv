@@ -1,5 +1,5 @@
 /*
- * CleanYourTV: publish Lampa's own TMDB "Сейчас смотрят" shelf as an Android TV preview channel.
+ * CleanYourTV: publish Lampa's TMDB home shelves as Android TV preview channels.
  * Install in Lampa's Extensions by URL. Requires Lampa Android 1.13.4+ and its plugin-channel bridge.
  * It uses Lampa's existing TMDB source and settings; it does not make direct network requests.
  */
@@ -7,7 +7,7 @@
     'use strict';
 
     var CHANNEL_PREFIX = 'cleanyourtv.lampa.';
-    var installedFlag = '__cleanyourtv_lampa_home_shelves_v2__';
+    var installedFlag = '__cleanyourtv_lampa_home_shelves_v3__';
 
     if (window[installedFlag]) return;
     window[installedFlag] = true;
@@ -75,10 +75,11 @@
     }
 
     function loadShelf() {
-        if (!window.Lampa || !Lampa.Api || typeof Lampa.Api.main !== 'function') return;
+        var tmdb = window.Lampa && Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb;
+        if (!tmdb || typeof tmdb.main !== 'function') return;
         try {
-            // Lampa's first TMDB home row is its own localized "Сейчас смотрят" feed.
-            Lampa.Api.main({ source: 'tmdb' }, publish, function () {});
+            // TMDB's main source returns a batch of home shelves in its callback.
+            tmdb.main({}, publish, function () {});
         } catch (ignored) {
             // A transient source error must not clear the last channel written to Android TV.
         }
